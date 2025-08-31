@@ -126,3 +126,45 @@ class FacialRecognitionSystem:
         self.register_button = ModernButton(self.button_frame, "Registrar Usuario Facial", self.show_register_screen, 
                                            width=300, height=50, bg=Config.SECONDARY_COLOR)
         self.register_button.pack(pady=15)
+
+            def show_login_screen(self):
+        if self.login_attempts <= 0:
+            messagebox.showerror("Bloqueado", "Sistema bloqueado por demasiados intentos fallidos.")
+            return
+        
+        self.login_window = tk.Toplevel(self.root)
+        self.login_window.title("Login Facial")
+        self.login_window.configure(bg=Config.BG_COLOR)
+        Utilities.center_window(self.login_window, 520, 420)
+        
+        card = tk.Frame(self.login_window, bg=Config.CARD_COLOR, bd=0, relief="flat")
+        card.pack(fill=tk.BOTH, expand=True, padx=40, pady=40)
+        
+        tk.Label(card, text="🔐 Iniciar Sesión Facial", 
+                font=Config.SUBTITLE_FONT, bg=Config.CARD_COLOR, fg=Config.PRIMARY_COLOR).pack(pady=(10, 20))
+        
+        tk.Label(card, text="Usuario", font=Config.LABEL_FONT, bg=Config.CARD_COLOR, fg=Config.TEXT_COLOR).pack(anchor="w", pady=(10, 5))
+        self.login_user_entry = ttk.Entry(card, width=30, font=("Segoe UI", 11))
+        self.login_user_entry.pack(ipady=8, fill=tk.X, pady=5)
+        
+        ModernButton(card, "Iniciar con Reconocimiento Facial", self.facial_login, 
+                    width=280, height=45, bg=Config.PRIMARY_COLOR).pack(pady=30)
+
+    def show_register_screen(self):
+        register_window = tk.Toplevel(self.root)
+        register_window.title("Registro Facial")
+        register_window.configure(bg=Config.BG_COLOR)
+        Utilities.center_window(register_window, 520, 420)
+        
+        card = tk.Frame(register_window, bg=Config.CARD_COLOR, bd=0, relief="flat")
+        card.pack(fill=tk.BOTH, expand=True, padx=40, pady=40)
+        
+        tk.Label(card, text="📝 Registro de Usuario", 
+                font=Config.SUBTITLE_FONT, bg=Config.CARD_COLOR, fg=Config.PRIMARY_COLOR).pack(pady=(10, 20))
+        
+        tk.Label(card, text="Usuario", font=Config.LABEL_FONT, bg=Config.CARD_COLOR, fg=Config.TEXT_COLOR).pack(anchor="w", pady=(10, 5))
+        self.reg_user_entry = ttk.Entry(card, width=30, font=("Segoe UI", 11))
+        self.reg_user_entry.pack(ipady=8, fill=tk.X, pady=5)
+        
+        ModernButton(card, "Registrar Rostro", self.facial_registration, 
+                    width=280, height=45, bg=Config.SECONDARY_COLOR).pack(pady=30)
