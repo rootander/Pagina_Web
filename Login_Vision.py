@@ -168,3 +168,27 @@ class FacialRecognitionSystem:
         
         ModernButton(card, "Registrar Rostro", self.facial_registration, 
                     width=280, height=45, bg=Config.SECONDARY_COLOR).pack(pady=30)
+        
+def facial_registration(self):
+        username = self.reg_user_entry.get().strip()
+        if not username:
+            messagebox.showerror("Error", "Ingrese un usuario antes de registrar")
+            return
+        
+        capture_window = tk.Toplevel(self.root)
+        capture_window.title("Registro Facial")
+        capture_window.configure(bg=Config.BG_COLOR)
+        Utilities.center_window(capture_window, 720, 620)
+        
+        info = tk.Label(capture_window, text="Asegúrate de que tu rostro esté bien iluminado.\n"
+                       "Colócate de frente y presiona 'Capturar'.", 
+                       font=Config.LABEL_FONT, bg=Config.BG_COLOR, fg=Config.TEXT_COLOR)
+        info.pack(pady=(10, 5))
+        
+        video_label = tk.Label(capture_window, bg=Config.BG_COLOR)
+        video_label.pack()
+        
+        ModernButton(capture_window, "Capturar", lambda: self.capture_face(username, capture_window), 
+                    width=150, height=40).pack(pady=20)
+        
+        self.start_camera(video_label)
