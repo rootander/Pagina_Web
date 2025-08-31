@@ -84,3 +84,17 @@ class ModernButton(tk.Canvas):
     
     def on_leave(self, _):
         self.itemconfig(self.rect_id, fill=self.bg)
+
+#Para el reconocimiento facial
+class FacialRecognitionSystem:
+    def _init_(self):
+        self.login_attempts = 3
+        self.current_user = None
+        self.cap = None
+        self.root = tk.Tk()
+        Utilities.ensure_directories()
+        self.login_window = None  # Referencia a la ventana de login
+
+    def run(self):
+        self.show_main_screen()
+        self.root.mainloop()
