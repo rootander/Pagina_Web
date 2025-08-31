@@ -93,8 +93,36 @@ class FacialRecognitionSystem:
         self.cap = None
         self.root = tk.Tk()
         Utilities.ensure_directories()
-        self.login_window = None  # Referencia a la ventana de login
+        self.login_window = None  
 
     def run(self):
         self.show_main_screen()
         self.root.mainloop()
+
+    def show_main_screen(self):
+        self.root.title("Sistema de Reconocimiento Facial")
+        self.root.configure(bg=Config.BG_COLOR)
+        Utilities.center_window(self.root, Config.WINDOW_WIDTH, Config.WINDOW_HEIGHT)
+        
+        self.main_frame = tk.Frame(self.root, bg=Config.BG_COLOR)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=50, pady=50)
+        
+        header_frame = tk.Frame(self.main_frame, bg=Config.BG_COLOR)
+        header_frame.pack(pady=(0, 30))
+        
+        tk.Label(header_frame, text="Sistema de Reconocimiento Facial", 
+                font=Config.TITLE_FONT, bg=Config.BG_COLOR, fg=Config.TEXT_COLOR).pack(pady=(20, 10))
+        
+        tk.Label(header_frame, text="Inicio de sesión SOLO con reconocimiento facial", 
+                font=Config.SUBTITLE_FONT, bg=Config.BG_COLOR, fg=Config.TEXT_COLOR).pack()
+        
+        self.button_frame = tk.Frame(self.main_frame, bg=Config.BG_COLOR)
+        self.button_frame.pack(pady=50)
+        
+        self.login_button = ModernButton(self.button_frame, "Iniciar Sesión Facial", self.show_login_screen, 
+                                        width=300, height=50, bg=Config.PRIMARY_COLOR)
+        self.login_button.pack(pady=15)
+        
+        self.register_button = ModernButton(self.button_frame, "Registrar Usuario Facial", self.show_register_screen, 
+                                           width=300, height=50, bg=Config.SECONDARY_COLOR)
+        self.register_button.pack(pady=15)
