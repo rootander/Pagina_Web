@@ -85,9 +85,8 @@ class ModernButton(tk.Canvas):
     def on_leave(self, _):
         self.itemconfig(self.rect_id, fill=self.bg)
 
-#Para el reconocimiento facial
 class FacialRecognitionSystem:
-    def _init_(self):
+    def __init__(self):
         self.login_attempts = 3
         self.current_user = None
         self.cap = None
@@ -127,7 +126,7 @@ class FacialRecognitionSystem:
                                            width=300, height=50, bg=Config.SECONDARY_COLOR)
         self.register_button.pack(pady=15)
 
-            def show_login_screen(self):
+    def show_login_screen(self):
         if self.login_attempts <= 0:
             messagebox.showerror("Bloqueado", "Sistema bloqueado por demasiados intentos fallidos.")
             return
@@ -168,8 +167,8 @@ class FacialRecognitionSystem:
         
         ModernButton(card, "Registrar Rostro", self.facial_registration, 
                     width=280, height=45, bg=Config.SECONDARY_COLOR).pack(pady=30)
-        
-def facial_registration(self):
+
+    def facial_registration(self):
         username = self.reg_user_entry.get().strip()
         if not username:
             messagebox.showerror("Error", "Ingrese un usuario antes de registrar")
@@ -192,3 +191,97 @@ def facial_registration(self):
                     width=150, height=40).pack(pady=20)
         
         self.start_camera(video_label)
+
+    def start_camera(self, video_label):
+        if self.cap is not None:
+            self.cap.release()
+        
+        self.cap = cv2.VideoCapture(0)
+        
+        if not self.cap.isOpened():
+            messagebox.showerror("Error", "No se pudo abrir la cámara.")
+            self.cap = None
+            return
+        
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, Config.CAMERA_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Config.CAMERA_HEIGHT)
+        
+        def update_frame():
+            if self.cap is not None and self.cap.isOpened():
+                ret, frame = self.cap.read()
+                if ret:
+                    frame = cv2.flip(frame, 1)
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    
+                    small_frame = cv2.resize(rgb_frame, (0, 0), fx=0.5, fy=0.5)
+                    face_locations = face_recognition.face_locations(small_frame, model="hog")
+                    
+                    scale_factor = 2
+                    face_locations = [(top*scale_factor, right*scale_factor, 
+                                      bottom*scale_factor, left*scale_factor) 
+                                     for (top, right, bottom, left) in face_locations]
+                    
+                    for top, right, bottom, left in face_locations:
+                        cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+                    
+                    img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    img = img.resize((640, 480), Image.LANCZOS)
+                    imgtk = ImageTk.PhotoImage(image=img)
+                    video_label.imgtk = imgtk
+                    video_label.configure(image=imgtk)
+            
+            if video_label.winfo_exists():  
+                video_label.after(30, update_frame)  # ~33 FPS
+        
+        update_frame()
+
+    def stop_camera(self):
+        if self.cap is not None:
+            self.cap.release()
+            self.cap = None
+
+    def capture_face(self, username, window):
+        if self.cap is not None and self.cap.isOpened():
+            ret, frame = self.cap.read()
+            if ret:
+                frame = cv2.flip(frame, 1)
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
+                small_frame = cv2.resize(rgb_frame, (0, 0), fx=0.5, fy=0.5)
+                face_locations = face_recognition.face_locations(small_frame, model="hog")
+                
+                if not face_locations:
+                    messagebox.showerror("Error", "No se detectó rostro. Intenta nuevamente.")
+                    return
+                
+                scale_factor = 2
+                face_locations = [(top*scale_factor, right*scale_factor, 
+                                  bottom*scale_factor, left*scale_factor) 
+                                 for (top, right, bottom, left) in face_locations]
+                
+                top, right, bottom, left = face_locations[0]
+                
+                top = max(0, top); left = max(0, left)
+                bottom = min(frame.shape[0], bottom)
+                right = min(frame.shape[1], right)
+                
+                face_image = frame[top:bottom, left:right]
+                if face_image.size == 0:
+                    messagebox.showerror("Error", "Recorte inválido del rostro. Intenta otra vez.")
+                    return
+                
+                face_image = cv2.resize(face_image, (150, 200))
+                save_path = Utilities.usuario_jpg(username)
+                cv2.imwrite(save_path, face_image)
+                
+                # Verificar que el encoding se pueda extraer
+                ref_img = face_recognition.load_image_file(save_path)
+                encs = face_recognition.face_encodings(ref_img)
+                if not encs:
+                    os.remove(save_path)
+                    messagebox.showerror("Error", "No se pudo procesar el rostro. Vuelve a intentar.")
+                    return
+                
+                messagebox.showinfo("Éxito", "Usuario registrado con éxito")
+                window.destroy()
+                self.stop_camera()
