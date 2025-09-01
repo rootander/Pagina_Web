@@ -199,7 +199,7 @@ class FacialRecognitionSystem:
         self.cap = cv2.VideoCapture(0)
         
         if not self.cap.isOpened():
-            messagebox.showerror("Error", "No se pudo abrir la cámara.")
+            messagebox.showerror("Error", "No se pudo abrir o aperturar la cámara.")
             self.cap = None
             return
         
