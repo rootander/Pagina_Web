@@ -285,3 +285,173 @@ class FacialRecognitionSystem:
                 messagebox.showinfo("Éxito", "Usuario registrado con éxito")
                 window.destroy()
                 self.stop_camera()
+def facial_login(self):
+        if self.login_attempts <= 0:
+            messagebox.showerror("Bloqueado", "Sistema bloqueado por demasiados intentos fallidos.")
+            return
+        
+        username = self.login_user_entry.get().strip()
+        if not username:
+            messagebox.showerror("Error", "Ingrese un usuario")
+            return
+        
+        face_path = Utilities.usuario_jpg(username)
+        if not os.path.exists(face_path):
+            messagebox.showerror("Error", "Usuario no registrado con reconocimiento facial")
+            return
+        
+        try:
+            reference_image = face_recognition.load_image_file(face_path)
+            reference_encodings = face_recognition.face_encodings(reference_image)
+            if not reference_encodings:
+                messagebox.showerror("Error", "No se pudo leer el rostro registrado. Registra de nuevo.")
+                return
+            reference_encoding = reference_encodings[0]
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo cargar la referencia: {e}")
+            return
+        
+        login_window = tk.Toplevel(self.root)
+        login_window.title("Login Facial")
+        login_window.configure(bg=Config.BG_COLOR)
+        Utilities.center_window(login_window, 740, 720)
+        
+        header = tk.Label(login_window, text=f"Tienes {Config.LOGIN_DURATION} segundos para autenticarte.\n"
+                         f"Cuenta regresiva y resultado en tiempo real.", 
+                         font=Config.SUBTITLE_FONT, bg=Config.BG_COLOR, fg=Config.TEXT_COLOR)
+        header.pack(pady=(10, 5))
+        
+        timer_label = tk.Label(login_window, text="", font=Config.LABEL_FONT, bg=Config.BG_COLOR, fg=Config.TEXT_COLOR)
+        timer_label.pack(pady=(0, 5))
+        
+        percent_label = tk.Label(login_window, text="Coincidencia: 0%", font=Config.LABEL_FONT, bg=Config.BG_COLOR, fg=Config.PRIMARY_COLOR)
+        percent_label.pack(pady=(0, 10))
+        
+        video_label = tk.Label(login_window, bg=Config.BG_COLOR)
+        video_label.pack()
+        
+        status_label = tk.Label(login_window, text="Esperando detección...", font=Config.LABEL_FONT, bg=Config.BG_COLOR, fg=Config.TEXT_COLOR)
+        status_label.pack(pady=10)
+        
+        self.start_facial_login(video_label, timer_label, status_label, percent_label, reference_encoding, username, login_window)
+
+def start_facial_login(self, video_label, timer_label, status_label, percent_label, reference_encoding, username, login_window):
+        start_time = time.time()
+        matches = 0
+        total_frames = 0
+        
+        if self.cap is not None:
+            self.cap.release()
+        
+        self.cap = cv2.VideoCapture(0)
+        
+        if not self.cap.isOpened():
+            messagebox.showerror("Error", "No se pudo abrir la cámara.")
+            return
+        
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, Config.CAMERA_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Config.CAMERA_HEIGHT)
+        
+        def update_frame():
+            nonlocal matches, total_frames
+            
+            elapsed = time.time() - start_time
+            remaining = max(0, Config.LOGIN_DURATION - int(elapsed))
+            timer_label.config(text=f"Tiempo restante: {remaining} s")
+            
+            if elapsed >= Config.LOGIN_DURATION:
+                self.stop_camera()
+                ratio = (matches / total_frames) if total_frames else 0.0
+                
+                if ratio >= Config.FACE_MATCH_THRESHOLD:
+                    status_label.config(text=f"✓ Reconocimiento exitoso ({ratio:.0%})", fg=Config.SUCCESS_COLOR)
+                    if self.login_window and self.login_window.winfo_exists():
+                        self.login_window.destroy()
+                    login_window.after(1000, lambda: (login_window.destroy(), self.show_dashboard(username)))
+                else:
+                    self.login_attempts -= 1
+                    intentos_msg = f" Intentos restantes: {self.login_attempts}" if self.login_attempts > 0 else ""
+                    status_label.config(text=f"✗ Usuario desconocido ({ratio:.0%}).{intentos_msg}", fg=Config.ERROR_COLOR)
+                    login_window.after(1500, login_window.destroy)
+                    
+                    if self.login_attempts <= 0:
+                        messagebox.showerror("Bloqueado", "Sistema bloqueado por demasiados intentos fallidos.")
+                        self.login_button.unbind("<Button-1>")
+                        self.register_button.unbind("<Button-1>")
+                        self.login_button.itemconfig(self.login_button.rect_id, fill="#999999")
+                        self.register_button.itemconfig(self.register_button.rect_id, fill="#999999")
+                        self.login_button.itemconfig(self.login_button.text_id, fill="#666666")
+                        self.register_button.itemconfig(self.register_button.text_id, fill="#666666")
+                return
+            
+            if self.cap is not None and self.cap.isOpened():
+                ret, frame = self.cap.read()
+                if ret:
+                    frame = cv2.flip(frame, 1)
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    
+                    small_frame = cv2.resize(rgb_frame, (0, 0), fx=0.5, fy=0.5)
+                    face_locations = face_recognition.face_locations(small_frame, model="hog")
+                    
+                    scale_factor = 2
+                    face_locations = [(top*scale_factor, right*scale_factor, 
+                                      bottom*scale_factor, left*scale_factor) 
+                                     for (top, right, bottom, left) in face_locations]
+                    
+                    face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+                    total_frames += 1
+                    any_match = False
+                    
+                    for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+                        results = face_recognition.compare_faces(
+                            [reference_encoding], face_encoding, tolerance=Config.FACE_TOLERANCE
+                        )
+                        is_match = bool(results[0]) if results else False
+                        any_match |= is_match
+                        
+                        if is_match:
+                            matches += 1
+                        
+                        color = (0, 255, 0) if is_match else (0, 0, 255)
+                        label = username if is_match else "Desconocido"
+                        cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+                        cv2.putText(frame, label, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+                    
+                    ratio = (matches / total_frames) if total_frames else 0.0
+                    percent_label.config(text=f"Coincidencia: {ratio:.0%}")
+                    
+                    if any_match:
+                        status_label.config(text=f"Rostro reconocido: {username}", fg=Config.SUCCESS_COLOR)
+                    else:
+                        status_label.config(text="Rostro no coincide", fg=Config.ERROR_COLOR)
+                    
+                    img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    img = img.resize((640, 480), Image.LANCZOS)
+                    imgtk = ImageTk.PhotoImage(image=img)
+                    video_label.imgtk = imgtk
+                    video_label.configure(image=imgtk)
+            
+            if video_label.winfo_exists():  
+                video_label.after(30, update_frame)  
+        
+        update_frame()
+
+    
+def show_dashboard(self, username):
+        dashboard = tk.Toplevel(self.root)
+        dashboard.title("Dashboard")
+        dashboard.configure(bg=Config.BG_COLOR)
+        Utilities.center_window(dashboard, 800, 600)
+        
+        tk.Label(dashboard, text=f"Bienvenido, {username}!", 
+                font=Config.TITLE_FONT, bg=Config.BG_COLOR, fg=Config.TEXT_COLOR).pack(pady=20)
+        
+        tk.Label(dashboard, text=datetime.now().strftime("%d/%m/%Y %H:%M"), 
+                font=Config.LABEL_FONT, bg=Config.BG_COLOR, fg=Config.TEXT_COLOR).pack(pady=(0, 20))
+        
+        ModernButton(dashboard, "Cerrar Sesión", dashboard.destroy, 
+                    width=200, height=40, bg=Config.ERROR_COLOR).pack(pady=20)
+
+if __name__ == "__main__":
+    app = FacialRecognitionSystem()
+    app.run()
