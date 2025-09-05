@@ -1,0 +1,2 @@
+<h1>Resumen</h1>
+El presente proyecto consiste en el desarrollo de un sistema para poder gestionar el inventario de la empresa “NovaSport S.A.C” especializada en ropa deportiva para varones y mujeres. El sistema incorpora como un valor diferencial el reconocimiento de usuarios mediante reconocimiento facial, lo que permite reforzar la seguridad, optimizar el acceso y mejorar la experiencia de uso. En base a esta solución, lo que se busca es centralizar el control de inventario, reducir errores en el registro de productos y agilizar los procesos internos de la empresa.
