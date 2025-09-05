@@ -1,8 +1,9 @@
 # Agradecimientos
 
-Expresamos nuestro sincero agradecimiento a la empresa Nique, dedicada a la ropa deportiva, por brindarnos tanto la oportunidad como los recursos necesarios para llevar a cabo este proyecto, así como por la confianza depositada en nuestra propuesta tecnológica.
+Queremos expresar nuestro más sincero agradecimiento al profesor Amache, cuya orientación constante fue clave durante el desarrollo de este proyecto. Su apoyo, dedicación y aliento nos motivaron a buscar la innovación y a esforzarnos al máximo en cada etapa del trabajo.
 
-También queremos reconocer el esfuerzo y la colaboración de los integrantes del equipo de trabajo, así como del personal administrativo y operativo que participó en la recolección de información y en la generación de ideas que contribuyeron a optimizar el sistema.
+Valoramos profundamente la participación activa de nuestros compañeros, quienes contribuyeron con ideas significativas y demostraron un verdadero espíritu de colaboración para alcanzar las metas planteadas.
 
-La realización de este proyecto no habría sido posible sin la dedicación y el respaldo de todas las personas involucradas.
+Asimismo, agradecemos a nuestras familias, y en particular a nuestros padres, por brindarnos su respaldo incondicional, por su paciencia y por ser una fuente constante de ánimo a lo largo de este proceso formativo.
 
+La realización de este proyecto fue posible gracias al compromiso, la inspiración y el apoyo de todas estas personas que nos acompañaron en el camino.
