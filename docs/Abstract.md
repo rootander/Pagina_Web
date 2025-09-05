@@ -1,0 +1,2 @@
+<h1>Abstract</h1>
+This project consists of developing a system to manage the inventory of NovaSport S.A.C., a company specializing in sportswear for men and women. The system incorporates user recognition through facial recognition as a differential value, which allows for enhanced security, optimized access, and an improved user experience. Based on this solution, the goal is to centralize inventory control, reduce errors in product registration, and streamline the company's internal processes.
