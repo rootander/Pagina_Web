@@ -1,11 +1,10 @@
 #Objetivos Especificos
 
-Examinar las necesidades funcionales y no funcionales que debe cumplir un sistema de control de inventario que utilice reconocimiento facial en la empresa NovaSport S.A.C.
+Analizar los requisitos funcionales y técnicos necesarios para el sistema de gestión de inventario y reconocimiento facial en la empresa
 
-Identificar las tecnologías más apropiadas para el desarrollo de un sistema biométrico enfocado en el reconocimiento facial dentro del entorno de gestión de inventario.
+Desarrollar el módulo de reconocimiento facial que identifique con precisión al personal autorizado para el acceso y manejo del inventario
 
-Elaborar el diseño lógico y operativo del sistema de inventario, incorporando el reconocimiento facial como método de validación de usuarios.
+Crear un sistema de control y registro automático de entradas y salidas del inventario asociado a la detección del personal
 
-Definir los lineamientos de seguridad y las políticas de acceso necesarias para proteger la información y los recursos del sistema de inventario.
 
-Diseñar una propuesta de modelo de gestión de inventario que aproveche herramientas biométricas, adaptada a las condiciones y necesidades de NovaSport S.A.C.
+
