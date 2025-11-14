@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventario por Talla</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #343a40;
+      padding-top: 20px;
+      position: fixed;
+      width: 220px;
+    }
+
+    .sidebar a {
+      color: #ffffff;
+      display: block;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #495057;
+      color: #ffffff;
+    }
+
+    .content {
+      margin-left: 220px;
+      padding: 20px 40px;
+      padding-top: 40px;
+    }
+
+    th.sortable:hover {
+      cursor: pointer;
+      color: #0d6efd;
+      text-decoration: underline;
+    }
+
+    /* 🔹 Scroll vertical con cabecera fija */
+    .table-responsive {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .table-responsive thead.sticky-top th {
+      background-color: #212529;
+      color: white;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+<div th:replace="fragments/sidebar :: sidebar"></div>
+<div th:replace="fragments/header :: header"></div>
+
+<!-- 🧱 Contenedor de notificaciones (z-index corregido) -->
+<div class="toast-container position-fixed top-1 end-0 p-3" id="toastContainer" style="z-index: 8000;"></div>
+
+
+<div class="content">
+  <h2 class="mb-4">Inventario por Talla</h2>
+
+  <!-- 🔍 Barra de filtros -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2 flex-wrap">
+      <input type="text" id="filtroBusqueda" class="form-control" placeholder="Buscar producto o talla..." style="min-width: 250px;">
+      <select id="filtroEstado" class="form-select">
+        <option value="">Todos los estados</option>
+        <option value="bajo">Stock Bajo</option>
+        <option value="ok">OK</option>
+      </select>
+      <select id="filtroOrden" class="form-select">
+        <option value="">Ordenar por...</option>
+        <option value="asc">Stock ↑ (menor a mayor)</option>
+        <option value="desc">Stock ↓ (mayor a menor)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="btnNuevoInventario"><i class="bi bi-plus-lg"></i> Agregar Inventario</button>
+  </div>
+
+  <!-- 🧾 Tabla con scroll vertical -->
+  <div class="table-responsive shadow-sm rounded">
+    <table class="table table-bordered table-hover align-middle mb-0">
+      <thead class="table-dark ">
+        <tr>
+          <th>ID</th>
+          <th>Producto</th>
+          <th>Talla</th>
+          <th class="sortable" id="sortStockActual">Stock Actual <i class="bi bi-arrow-down-up"></i></th>
+          <th>Stock Mínimo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="inventarioTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 🪟 Modal -->
+<div class="modal fade" id="inventarioModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="inventarioForm">
+      <div class="modal-header">
+        <h5 class="modal-title">Inventario</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="inventarioId">
+
+        <div class="mb-3">
+          <label for="productoId" class="form-label">Producto</label>
+          <select id="productoId" class="form-select" required></select>
+        </div>
+
+        <div class="mb-3">
+          <label for="tallaId" class="form-label">Talla</label>
+          <select id="tallaId" class="form-select" required></select>
+        </div>
+
+        <div class="mb-3">
+          <label for="stockMinimo" class="form-label">Stock Mínimo</label>
+          <input type="number" id="stockMinimo" class="form-control" min="0" required value="5">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const inventarioTable = document.getElementById("inventarioTable");
+  const inventarioForm = document.getElementById("inventarioForm");
+  const inventarioModal = new bootstrap.Modal(document.getElementById("inventarioModal"));
+  const btnNuevo = document.getElementById("btnNuevoInventario");
+
+  let inventarioData = [];
+
+  function renderInventario(item) {
+    const productoNombre = item.producto?.nombre || `#${item.producto?.id || "N/A"}`;
+    const tallaNombre = item.talla?.nombre || `#${item.talla?.id || "N/A"}`;
+    const estado = item.stockActual < item.stockMinimo
+      ? '<span class="badge bg-danger">Bajo</span>'
+      : '<span class="badge bg-success">OK</span>';
+    return `
+      <tr data-id="${item.id}" data-stock="${item.stockActual}">
+        <td>${item.id}</td>
+        <td>${productoNombre}</td>
+        <td>${tallaNombre}</td>
+        <td>${item.stockActual}</td>
+        <td>${item.stockMinimo}</td>
+        <td>${estado}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="editarInventario(${item.id})"><i class="bi bi-pencil-square"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarInventario(${item.id})"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>`;
+  }
+
+  function cargarInventario() {
+    fetch("/api/producto-talla")
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        inventarioData = data;
+        actualizarTabla();
+      })
+      .catch(err => {
+        console.error("Error al cargar inventario:", err);
+        inventarioTable.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Error al cargar</td></tr>`;
+        mostrarToast("Error", "No se pudo cargar el inventario.", "danger");
+      });
+  }
+
+  function actualizarTabla() {
+    inventarioTable.innerHTML = "";
+    if (!inventarioData.length) {
+      inventarioTable.innerHTML = `<tr><td colspan="7" class="text-center">Sin datos</td></tr>`;
+      return;
+    }
+
+    const productosBajos = [];
+
+    inventarioData.forEach(i => {
+      const fila = document.createElement("tr");
+      fila.innerHTML = renderInventario(i);
+
+      if (i.stockActual < 5 || i.stockActual < i.stockMinimo) {
+        fila.classList.add("table-danger");
+        productosBajos.push(i);
+      }
+
+      inventarioTable.appendChild(fila);
+    });
+
+    if (productosBajos.length > 0) {
+      mostrarToast("Atención: Stock Bajo", `Hay ${productosBajos.length} producto(s) con stock bajo.`, "warning");
+    }
+
+    aplicarFiltros(); // aplica filtros tras recargar
+  }
+
+  // 📦 Carga inicial
+  cargarInventario();
+
+  // 🎚️ Filtros
+  const filtroBusqueda = document.getElementById("filtroBusqueda");
+  const filtroEstado = document.getElementById("filtroEstado");
+  const filtroOrden = document.getElementById("filtroOrden");
+
+  function aplicarFiltros() {
+    const texto = filtroBusqueda.value.toLowerCase();
+    const estado = filtroEstado.value;
+    const orden = filtroOrden.value;
+
+    const filas = Array.from(inventarioTable.querySelectorAll("tr"));
+
+    filas.forEach(fila => {
+      const producto = fila.children[1]?.textContent.toLowerCase() || "";
+      const talla = fila.children[2]?.textContent.toLowerCase() || "";
+      const esBajo = fila.classList.contains("table-danger");
+
+      const coincideTexto = producto.includes(texto) || talla.includes(texto);
+      const coincideEstado = estado === "" || (estado === "bajo" && esBajo) || (estado === "ok" && !esBajo);
+
+      fila.style.display = coincideTexto && coincideEstado ? "" : "none";
+    });
+
+    if (orden) {
+      const visibles = filas.filter(f => f.style.display !== "none");
+      visibles.sort((a, b) => {
+        const stockA = parseInt(a.dataset.stock);
+        const stockB = parseInt(b.dataset.stock);
+        return orden === "asc" ? stockA - stockB : stockB - stockA;
+      });
+      visibles.forEach(f => inventarioTable.appendChild(f));
+    }
+  }
+
+  filtroBusqueda.addEventListener("input", aplicarFiltros);
+  filtroEstado.addEventListener("change", aplicarFiltros);
+  filtroOrden.addEventListener("change", aplicarFiltros);
+
+  // 🎨 Modal CRUD
+  btnNuevo.addEventListener("click", () => {
+    inventarioForm.reset();
+    document.getElementById("inventarioId").value = "";
+    cargarProductos();
+    cargarTallas();
+    document.getElementById("stockMinimo").value = 5;
+    inventarioModal.show();
+  });
+
+  function cargarProductos() {
+    fetch("/api/productos")
+      .then(res => res.json())
+      .then(data => {
+        const select = document.getElementById("productoId");
+        select.innerHTML = '<option value="">Seleccione un producto</option>';
+        data.forEach(p => {
+          select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+        });
+      });
+  }
+
+  function cargarTallas() {
+    fetch("/api/tallas")
+      .then(res => res.json())
+      .then(data => {
+        const select = document.getElementById("tallaId");
+        select.innerHTML = '<option value="">Seleccione una talla</option>';
+        data.forEach(t => {
+          select.innerHTML += `<option value="${t.id}">${t.nombre}</option>`;
+        });
+      });
+  }
+
+  inventarioForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const id = document.getElementById("inventarioId").value;
+    const payload = {
+      producto: { id: Number(document.getElementById("productoId").value) },
+      talla: { id: Number(document.getElementById("tallaId").value) },
+      stockMinimo: Number(document.getElementById("stockMinimo").value)
+    };
+    let url = "/api/producto-talla";
+    let method = "POST";
+    if (id) {
+      url += `/${id}`;
+      method = "PUT";
+    }
+    fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error(`Error guardando inventario. Status: ${res.status}`);
+      return res.json();
+    })
+    .then(() => {
+      inventarioModal.hide();
+      cargarInventario();
+    })
+    .catch(err => {
+      console.error("Error al guardar inventario:", err);
+      alert(err.message);
+    });
+  });
+
+  window.editarInventario = function(id) {
+    Promise.all([
+      fetch(`/api/producto-talla/${id}`).then(r => r.json()),
+      fetch("/api/productos").then(r => r.json()),
+      fetch("/api/tallas").then(r => r.json())
+    ])
+    .then(([item, productos, tallas]) => {
+      const productoSelect = document.getElementById("productoId");
+      const tallaSelect = document.getElementById("tallaId");
+
+      productoSelect.innerHTML = productos.map(p =>
+        `<option value="${p.id}" ${p.id === item.producto?.id ? 'selected' : ''}>${p.nombre}</option>`
+      ).join("");
+
+      tallaSelect.innerHTML = tallas.map(t =>
+        `<option value="${t.id}" ${t.id === item.talla?.id ? 'selected' : ''}>${t.nombre}</option>`
+      ).join("");
+
+      document.getElementById("inventarioId").value = item.id;
+      document.getElementById("stockMinimo").value = item.stockMinimo;
+      inventarioModal.show();
+    })
+    .catch(err => {
+      console.error("Error al editar inventario:", err);
+      alert("No se pudo cargar el inventario para editar");
+    });
+  };
+
+  window.eliminarInventario = function(id) {
+    if (confirm("¿Eliminar este inventario?")) {
+      fetch(`/api/producto-talla/${id}`, { method: "DELETE" })
+        .then(res => {
+          if (!res.ok) throw new Error(`Error al eliminar inventario. Status: ${res.status}`);
+          cargarInventario();
+        })
+        .catch(err => {
+          console.error("Error al eliminar inventario:", err);
+          alert(err.message);
+        });
+    }
+  };
+});
+
+// 🧱 Toasts
+function mostrarToast(titulo, mensaje, tipo = "info") {
+  const colores = {
+    info: "bg-primary text-white",
+    success: "bg-success text-white",
+    warning: "bg-warning text-dark",
+    danger: "bg-danger text-white"
+  };
+
+  // Asegurar que el contenedor de toasts existe
+  let toastContainer = document.getElementById("toastContainer");
+  if (!toastContainer) {
+    toastContainer = document.createElement("div");
+    toastContainer.id = "toastContainer";
+    toastContainer.className = "toast-container position-fixed top-0 end-0 p-3";
+    toastContainer.style.zIndex = "1040"; // 🔹 debajo del modal (1055)
+    document.body.appendChild(toastContainer);
+  } else {
+    // Si ya existe, solo ajustamos su z-index
+    toastContainer.style.zIndex = "1040";
+  }
+
+  // Crear el toast
+  const toast = document.createElement("div");
+  toast.className = `toast align-items-center border-0 show ${colores[tipo] || colores.info}`;
+  toast.role = "alert";
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body"><strong>${titulo}:</strong> ${mensaje}</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>`;
+
+  toastContainer.appendChild(toast);
+
+  // Inicializar el toast con Bootstrap (sin autohide)
+  const bsToast = new bootstrap.Toast(toast, { autohide: false });
+  bsToast.show();
+
+  // Eliminar del DOM solo cuando el usuario lo cierre manualmente
+  toast.addEventListener("hidden.bs.toast", () => toast.remove());
+}
+
+</script>
+</body>
+</html>
