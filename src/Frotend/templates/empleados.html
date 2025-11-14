@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestión de Empleados</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #343a40;
+      padding-top: 20px;
+      position: fixed;
+      width: 220px;
+    }
+
+    .sidebar a {
+      color: #ffffff;
+      display: block;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #495057;
+      color: #ffffff;
+    }
+
+    .top-header {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 1030;
+      height: 60px;
+      background-color: #fff;
+      border-bottom: 1px solid #dee2e6;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .content {
+      margin-left: 220px;
+      padding: 20px 40px;
+      padding-top: 80px;
+    }
+
+    /* Scroll para la tabla */
+    .table-container {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #dee2e6;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #212529;
+      color: white;
+      z-index: 2;
+    }
+
+    /* Caja de filtros */
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+
+    .filtros input, .filtros select {
+      max-width: 250px;
+    }
+  </style>
+</head>
+<body>
+
+<div th:replace="fragments/sidebar :: sidebar"></div>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="content">
+  <div class="container">
+    <h2>Gestión de Empleados</h2>
+    <button class="btn btn-primary mb-3" id="btnNuevoEmpleado">
+      <i class="bi bi-person-plus-fill"></i> Nuevo Empleado
+    </button>
+
+    <div id="mensaje" class="alert d-none"></div>
+
+    <!-- 🔍 Filtros -->
+    <div class="filtros">
+      <input type="text" id="buscar" class="form-control" placeholder="Buscar por nombre, apellido, usuario o DNI">
+      <select id="filtroRol" class="form-select">
+        <option value="">Todos los roles</option>
+        <option value="ADMIN">ADMIN</option>
+        <option value="EMPLEADO">EMPLEADO</option>
+      </select>
+    </div>
+
+    <!-- 📋 Tabla con scroll -->
+    <div class="table-container">
+      <table class="table table-bordered table-hover" id="empleadosTable">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>DNI</th>
+            <th>Teléfono</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="empleadoModal" tabindex="-1" aria-labelledby="empleadoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" id="empleadoForm">
+      <div class="modal-header">
+        <h5 class="modal-title" id="empleadoModalLabel">Registrar Empleado</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="faceEncoding" name="faceEncoding" />
+        <h5>Datos del Usuario</h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Usuario</label>
+            <input type="text" class="form-control" id="username" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Rol</label>
+            <select class="form-select" id="rol" required>
+              <option value="ADMIN">ADMIN</option>
+              <option value="EMPLEADO" selected>EMPLEADO</option>
+            </select>
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <button type="button" class="btn btn-secondary w-100" id="btnCapturar">📸 Capturar Rostro</button>
+          </div>
+        </div>
+
+        <hr />
+        <h5>Datos del Empleado</h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nombre</label>
+            <input type="text" class="form-control" id="nombre" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Apellido</label>
+            <input type="text" class="form-control" id="apellido" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">DNI</label>
+            <input type="text" class="form-control" id="dni" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Teléfono</label>
+            <input type="text" class="form-control" id="telefono" />
+          </div>
+          <div class="col-12">
+            <label class="form-label">Dirección</label>
+            <input type="text" class="form-control" id="direccion" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Salario</label>
+            <input type="number" step="0.01" class="form-control" id="salario" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const empleadoModal = new bootstrap.Modal(document.getElementById("empleadoModal"));
+  const mensaje = document.getElementById("mensaje");
+  const faceEncodingInput = document.getElementById("faceEncoding");
+  const buscarInput = document.getElementById("buscar");
+  const filtroRol = document.getElementById("filtroRol");
+  let empleados = [];
+
+  document.getElementById("btnNuevoEmpleado").addEventListener("click", () => {
+    document.getElementById("empleadoForm").reset();
+    faceEncodingInput.value = "";
+    mensaje.className = "alert d-none";
+    empleadoModal.show();
+  });
+
+  // Captura facial (igual que antes)
+  document.getElementById("btnCapturar").addEventListener("click", () => {
+    mensaje.className = "alert alert-info d-block";
+    mensaje.textContent = "📸 Abriendo cámara... espera.";
+
+    fetch("/api/empleados/capturar-rostro")
+      .then(async res => {
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error || "Error al iniciar la captura facial.");
+        mensaje.textContent = "✔ Cámara abierta. Presiona ESPACIO en la ventana de la cámara.";
+
+        let intentos = 0;
+        const intervalo = setInterval(() => {
+          intentos++;
+          fetch("/api/empleados/obtener-encoding")
+            .then(res => {
+              if (res.status === 404) return null;
+              if (!res.ok) throw new Error("Error al obtener encoding");
+              return res.json();
+            })
+            .then(data => {
+              if (data?.encoding) {
+                faceEncodingInput.value = JSON.stringify(data.encoding);
+                mensaje.className = "alert alert-success d-block";
+                mensaje.textContent = "✅ Rostro capturado correctamente.";
+                clearInterval(intervalo);
+              }
+            })
+            .catch(err => {
+              clearInterval(intervalo);
+              mensaje.className = "alert alert-danger d-block";
+              mensaje.textContent = "❌ Error obteniendo encoding: " + err.message;
+            });
+
+          if (intentos > 15) {
+            clearInterval(intervalo);
+            mensaje.className = "alert alert-warning d-block";
+            mensaje.textContent = "⚠ No se detectó rostro a tiempo. Vuelve a intentarlo.";
+          }
+        }, 2000);
+      })
+      .catch(err => {
+        mensaje.className = "alert alert-danger d-block";
+        mensaje.textContent = "❌ Error conectando con backend: " + err.message;
+      });
+  });
+
+  // Guardar empleado
+  document.getElementById("empleadoForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const payload = {
+      usuario: {
+        username: document.getElementById("username").value,
+        email: document.getElementById("email").value,
+        rol: document.getElementById("rol").value,
+        faceEncoding: faceEncodingInput.value
+      },
+      nombre: document.getElementById("nombre").value,
+      apellido: document.getElementById("apellido").value,
+      dni: document.getElementById("dni").value,
+      telefono: document.getElementById("telefono").value,
+      direccion: document.getElementById("direccion").value,
+      salario: parseFloat(document.getElementById("salario").value) || 0
+    };
+
+    fetch("/api/empleados", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(async res => {
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Error al guardar el empleado");
+      mensaje.className = "alert alert-success d-block";
+      mensaje.textContent = "✅ Empleado registrado correctamente";
+      empleadoModal.hide();
+      cargarEmpleados();
+    })
+    .catch(err => {
+      mensaje.className = "alert alert-danger d-block";
+      mensaje.textContent = "❌ " + err.message;
+    });
+  });
+
+  // Cargar empleados
+  function cargarEmpleados() {
+    fetch("/api/empleados")
+      .then(res => res.json())
+      .then(data => {
+        empleados = data;
+        mostrarEmpleados(data);
+      })
+      .catch(err => console.error("❌ Error cargando empleados:", err));
+  }
+
+  // Mostrar empleados con filtros aplicados
+  function mostrarEmpleados(lista) {
+    const tbody = document.querySelector("#empleadosTable tbody");
+    tbody.innerHTML = "";
+
+    lista.forEach(emp => {
+      const row = `
+        <tr>
+          <td>${emp.id}</td>
+          <td>${emp.usuario.username}</td>
+          <td>${emp.usuario.email}</td>
+          <td>${emp.usuario.rol}</td>
+          <td>${emp.nombre}</td>
+          <td>${emp.apellido}</td>
+          <td>${emp.dni}</td>
+          <td>${emp.telefono || ""}</td>
+        </tr>`;
+      tbody.innerHTML += row;
+    });
+  }
+
+  // Filtro instantáneo
+  function aplicarFiltros() {
+    const texto = buscarInput.value.toLowerCase();
+    const rol = filtroRol.value;
+
+    const filtrados = empleados.filter(emp =>
+      (
+        emp.nombre.toLowerCase().includes(texto) ||
+        emp.apellido.toLowerCase().includes(texto) ||
+        emp.usuario.username.toLowerCase().includes(texto) ||
+        emp.dni.toLowerCase().includes(texto)
+      ) && (rol === "" || emp.usuario.rol === rol)
+    );
+
+    mostrarEmpleados(filtrados);
+  }
+
+  buscarInput.addEventListener("input", aplicarFiltros);
+  filtroRol.addEventListener("change", aplicarFiltros);
+
+  cargarEmpleados();
+});
+</script>
+
+</body>
+</html>

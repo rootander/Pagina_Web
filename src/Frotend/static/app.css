@@ -1,0 +1,6 @@
+
+body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:0;background:#fafafa;color:#222}
+.container{max-width:1000px;margin:2rem auto;padding:1rem}
+.navbar{display:flex;gap:1rem;background:#111;color:#fff;padding:1rem}
+.navbar a{color:#fff;text-decoration:none}
+.btn{display:inline-block;padding:.5rem 1rem;border:1px solid #111}

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Movimientos de Inventario</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #343a40;
+      padding-top: 20px;
+      position: fixed;
+      width: 220px;
+    }
+
+    .sidebar a {
+      color: #ffffff;
+      display: block;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+      background-color: #495057;
+      color: #ffffff;
+    }
+
+    .content {
+      margin-left: 220px;
+      padding: 20px 40px;
+      padding-top: 50px;
+    }
+
+    .table-container {
+      max-height: 520px;
+      overflow-y: auto;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .table thead th {
+      position: sticky;
+      top: 0;
+      background-color: #212529;
+      color: white;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div th:replace="fragments/sidebar :: sidebar"></div>
+  <div th:replace="fragments/header :: header"></div>
+
+  <div class="content">
+    <h2 class="mb-4">Movimientos de Inventario</h2>
+    <p id="usuarioLogueado" class="text-muted"></p>
+
+    <!-- 🔍 FILTROS -->
+    <div class="card p-3 mb-4 shadow-sm">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label fw-bold">Buscar</label>
+          <input type="text" id="filtroBusqueda" class="form-control" placeholder="Producto, usuario o descripción...">
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label fw-bold">Tipo</label>
+          <select id="filtroTipo" class="form-select">
+            <option value="">Todos</option>
+            <option value="ENTRADA">Entradas</option>
+            <option value="SALIDA">Salidas</option>
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label fw-bold">Desde</label>
+          <input type="date" id="fechaDesde" class="form-control">
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label fw-bold">Hasta</label>
+          <input type="date" id="fechaHasta" class="form-control">
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label fw-bold">Orden</label>
+          <select id="filtroOrden" class="form-select">
+            <option value="">Ordenar por...</option>
+            <option value="asc">Fecha ↑ (más antiguos)</option>
+            <option value="desc">Fecha ↓ (más recientes)</option>
+          </select>
+        </div>
+
+        <div class="col-md-12 mt-3 d-flex justify-content-end gap-2">
+          <button class="btn btn-danger" id="btnExportPDF">
+            <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+          </button>
+          <button class="btn btn-success" id="btnExportExcel">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Excel
+          </button>
+          <button class="btn btn-primary" id="btnNuevoMovimiento">
+            <i class="bi bi-plus-lg"></i> Registrar Movimiento
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🧾 TABLA -->
+    <div class="table-container shadow-sm">
+      <table class="table table-bordered table-hover align-middle" id="tablaMovimientos">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Producto y Talla</th>
+            <th>Cantidad</th>
+            <th>Tipo</th>
+            <th>Fecha</th>
+            <th>Descripción</th>
+            <th>Usuario</th>
+          </tr>
+        </thead>
+        <tbody id="movimientosTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 🧩 MODAL REGISTRO -->
+  <div class="modal fade" id="movimientoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="movimientoForm" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title">Registrar Movimiento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="mensajeError" class="alert alert-danger d-none"></div>
+          <input type="hidden" id="movimientoId" />
+
+          <div class="mb-3">
+            <label for="productoTallaId" class="form-label">Producto y Talla</label>
+            <select id="productoTallaId" class="form-select" required>
+              <option value="">Selecciona un producto y talla</option>
+            </select>
+            <div class="invalid-feedback">Debe seleccionar un producto y talla.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="cantidadMov" class="form-label">Cantidad</label>
+            <div class="input-group has-validation">
+              <input type="number" id="cantidadMov" class="form-control" min="1" required />
+              <span id="iconoCantidad" class="input-group-text d-none">
+                <i class="bi bi-x-circle text-danger"></i>
+              </span>
+              <div class="invalid-feedback">
+                Ingrese una cantidad válida mayor a cero o revise el stock disponible.
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="tipoMov" class="form-label">Tipo</label>
+            <select id="tipoMov" class="form-select" required>
+              <option value="ENTRADA">ENTRADA</option>
+              <option value="SALIDA">SALIDA</option>
+            </select>
+            <div class="invalid-feedback">Seleccione un tipo válido.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="descripcionMov" class="form-label">Descripción</label>
+            <textarea id="descripcionMov" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Registrar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 📚 LIBRERÍAS EXPORTACIÓN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <!-- 📜 SCRIPT PRINCIPAL -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const movimientosTable = document.getElementById("movimientosTable");
+      const movimientoForm = document.getElementById("movimientoForm");
+      const movimientoModal = new bootstrap.Modal(document.getElementById("movimientoModal"));
+      const btnNuevo = document.getElementById("btnNuevoMovimiento");
+      const productoTallaSelect = document.getElementById("productoTallaId");
+      const usuarioLogueado = document.getElementById("usuarioLogueado");
+      const mensajeError = document.getElementById("mensajeError");
+      const cantidadInput = document.getElementById("cantidadMov");
+      const tipoSelect = document.getElementById("tipoMov");
+      const iconoCantidad = document.getElementById("iconoCantidad");
+      const filtroBusqueda = document.getElementById("filtroBusqueda");
+      const filtroTipo = document.getElementById("filtroTipo");
+      const filtroOrden = document.getElementById("filtroOrden");
+      const fechaDesde = document.getElementById("fechaDesde");
+      const fechaHasta = document.getElementById("fechaHasta");
+      const btnExcel = document.getElementById("btnExportExcel");
+      const btnPDF = document.getElementById("btnExportPDF");
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/esperando-login";
+        return;
+      }
+
+      function parseJwt(token) {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          return JSON.parse(decodeURIComponent(atob(base64).split('').map(c =>
+            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          ).join('')));
+        } catch { return null; }
+      }
+
+      const decoded = parseJwt(token);
+      if (decoded?.sub) usuarioLogueado.textContent = `Usuario logueado: ${decoded.sub}`;
+
+      function authFetch(url, options = {}) {
+        return fetch(url, {
+          ...options,
+          headers: {
+            ...(options.headers || {}),
+            "Authorization": `Bearer ${token}`,
+            ...(options.body ? { "Content-Type": "application/json" } : {})
+          }
+        });
+      }
+
+      let movimientosGlobal = [];
+
+      function renderMovimiento(m) {
+        const producto = m.productoTalla?.producto?.nombre || "N/A";
+        const talla = m.productoTalla?.talla?.nombre || "N/A";
+        const usuario = m.usuario?.username || "N/A";
+        return `
+          <tr>
+            <td>${m.id}</td>
+            <td>${producto} - Talla ${talla}</td>
+            <td>${m.cantidad}</td>
+            <td>${m.tipo}</td>
+            <td>${new Date(m.fecha).toLocaleString()}</td>
+            <td>${m.descripcion || ""}</td>
+            <td>${usuario}</td>
+          </tr>`;
+      }
+
+      function aplicarFiltros(movimientos) {
+        let filtrados = [...movimientos];
+        const texto = filtroBusqueda.value.toLowerCase();
+        const tipo = filtroTipo.value;
+        const orden = filtroOrden.value;
+        const desde = fechaDesde.value;
+        const hasta = fechaHasta.value;
+
+        if (texto) {
+          filtrados = filtrados.filter(m => {
+            const producto = m.productoTalla?.producto?.nombre?.toLowerCase() || "";
+            const usuario = m.usuario?.username?.toLowerCase() || "";
+            const descripcion = m.descripcion?.toLowerCase() || "";
+            return producto.includes(texto) || usuario.includes(texto) || descripcion.includes(texto);
+          });
+        }
+
+        if (tipo) filtrados = filtrados.filter(m => m.tipo === tipo);
+
+        if (desde) filtrados = filtrados.filter(m => new Date(m.fecha) >= new Date(desde));
+        if (hasta) filtrados = filtrados.filter(m => new Date(m.fecha) <= new Date(hasta + "T23:59:59"));
+
+        if (orden === "asc") filtrados.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+        else if (orden === "desc") filtrados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        return filtrados;
+      }
+
+      function renderTabla() {
+        const visibles = aplicarFiltros(movimientosGlobal);
+        movimientosTable.innerHTML = visibles.length
+          ? visibles.map(renderMovimiento).join("")
+          : `<tr><td colspan="7" class="text-center text-muted">No se encontraron movimientos</td></tr>`;
+      }
+
+      function cargarMovimientos() {
+        authFetch("/api/movimientos")
+          .then(res => res.json())
+          .then(data => {
+            movimientosGlobal = data;
+            renderTabla();
+          });
+      }
+
+      // 🧾 EXPORTAR EXCEL
+      btnExcel.addEventListener("click", async () => {
+  const visibles = aplicarFiltros(movimientosGlobal);
+  if (visibles.length === 0) return alert("No hay datos para exportar.");
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Movimientos");
+
+  // Cabecera
+  worksheet.columns = [
+    { header: "ID", key: "id", width: 5 },
+    { header: "Producto", key: "producto", width: 25 },
+    { header: "Talla", key: "talla", width: 10 },
+    { header: "Cantidad", key: "cantidad", width: 10 },
+    { header: "Tipo", key: "tipo", width: 10 },
+    { header: "Fecha", key: "fecha", width: 25 },
+    { header: "Usuario", key: "usuario", width: 15 }
+  ];
+
+  // Estilo cabecera
+  worksheet.getRow(1).eachCell(cell => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F81BD" } };
+    cell.alignment = { horizontal: "center" };
+    cell.border = {
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" }
+    };
+  });
+
+  // Agregar datos
+  visibles.forEach(m => {
+    const row = worksheet.addRow({
+      id: m.id,
+      producto: m.productoTalla?.producto?.nombre || "",
+      talla: m.productoTalla?.talla?.nombre || "",
+      cantidad: m.cantidad,
+      tipo: m.tipo,
+      fecha: new Date(m.fecha).toLocaleString(),
+      usuario: m.usuario?.username || ""
+    });
+
+    // Bordes para cada celda
+    row.eachCell(cell => {
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" }
+      };
+    });
+  });
+
+  // Descargar archivo
+  workbook.xlsx.writeBuffer().then(buffer => {
+    const blob = new Blob([buffer], { type: "application/octet-stream" });
+    saveAs(blob, "Movimientos_Inventario.xlsx");
+  });
+});
+      // 📄 EXPORTAR PDF
+      btnPDF.addEventListener("click", () => {
+        const visibles = aplicarFiltros(movimientosGlobal);
+        if (visibles.length === 0) return alert("No hay datos para exportar.");
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(16);
+        doc.text("Reporte de Movimientos de Inventario", 105, 15, { align: "center" });
+        doc.setFontSize(10);
+        doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 22);
+
+        const columnas = ["ID", "Producto", "Talla", "Cantidad", "Tipo", "Fecha", "Usuario"];
+        const filas = visibles.map(m => [
+          m.id,
+          m.productoTalla?.producto?.nombre || "",
+          m.productoTalla?.talla?.nombre || "",
+          m.cantidad,
+          m.tipo,
+          new Date(m.fecha).toLocaleString(),
+          m.usuario?.username || ""
+        ]);
+
+        doc.autoTable({
+          startY: 30,
+          head: [columnas],
+          body: filas,
+          theme: "grid",
+          headStyles: { fillColor: [33, 37, 41] },
+          styles: { fontSize: 9 }
+        });
+
+        doc.save("Movimientos_Inventario.pdf");
+      });
+
+      // 🔄 EVENTOS DE FILTRO
+      [filtroBusqueda, filtroTipo, filtroOrden, fechaDesde, fechaHasta].forEach(el => {
+        el.addEventListener("input", renderTabla);
+        el.addEventListener("change", renderTabla);
+      });
+
+      // 📦 CARGAR PRODUCTOS Y MOVIMIENTOS
+      cargarMovimientos();
+
+      btnNuevo.addEventListener("click", () => {
+        mensajeError.classList.add("d-none");
+        movimientoForm.reset();
+        iconoCantidad.classList.add("d-none");
+        movimientoModal.show();
+      });
+    });
+  </script>
+</body>
+</html>

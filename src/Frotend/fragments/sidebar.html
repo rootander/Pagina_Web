@@ -1,0 +1,229 @@
+<div th:fragment="sidebar">
+  <nav class="sidebar d-flex flex-column position-fixed top-0 start-0 vh-100 p-3" style="width: 220px; background: linear-gradient(180deg, #6a11cb 0%, #2575fc 100%); box-shadow: 4px 0 20px rgba(106, 17, 203, 0.3); z-index: 1030;">
+    
+    
+    <div class="text-center mb-4 mt-2">
+      <div class="logo-container mb-3">
+        <i class="bi bi-lightning-charge-fill text-white" style="font-size: 2.5rem; text-shadow: 0 0 15px rgba(255,255,255,0.5);"></i>
+      </div>
+      <h4 class="text-white fw-bold mb-0" style="letter-spacing: 2px; text-shadow: 0 2px 8px rgba(0,0,0,0.3); font-family: 'Segoe UI', sans-serif;">NOVA SPORT</h4>
+      <small class="text-white-50" style="font-size: 0.7rem; letter-spacing: 1px;">INVENTORY SYSTEM</small>
+    </div>
+    
+    <hr class="border-white opacity-50 mb-4 mx-2" />
+
+    
+    <div class="flex-grow-1">
+      <a th:href="@{/dashboard}" class="d-flex align-items-center text-white text-decoration-none mb-3 px-3 py-3 rounded sidebar-link active">
+        <div class="icon-wrapper me-3">
+          <i class="bi bi-speedometer2 fs-5"></i>
+        </div>
+        <span class="fw-semibold">Dashboard</span>
+        <div class="badge-notif ms-auto">●</div>
+      </a>
+      
+      <a th:href="@{/inventario}" class="d-flex align-items-center text-white text-decoration-none mb-3 px-3 py-3 rounded sidebar-link">
+        <div class="icon-wrapper me-3">
+          <i class="bi bi-journal-check fs-5"></i>
+        </div>
+        <span class="fw-semibold">Inventario</span>
+      </a>
+      
+      <a th:href="@{/productos}" class="d-flex align-items-center text-white text-decoration-none mb-3 px-3 py-3 rounded sidebar-link">
+        <div class="icon-wrapper me-3">
+          <i class="bi bi-box-seam fs-5"></i>
+        </div>
+        <span class="fw-semibold">Productos</span>
+      </a>
+      
+      <a th:href="@{/movimientos}" class="d-flex align-items-center text-white text-decoration-none mb-3 px-3 py-3 rounded sidebar-link">
+        <div class="icon-wrapper me-3">
+          <i class="bi bi-arrow-left-right fs-5"></i>
+        </div>
+        <span class="fw-semibold">Movimientos</span>
+        <span class="badge bg-warning ms-auto">12</span>
+      </a>
+      
+      <a th:href="@{/categorias}" class="d-flex align-items-center text-white text-decoration-none mb-3 px-3 py-3 rounded sidebar-link">
+        <div class="icon-wrapper me-3">
+          <i class="bi bi-bookmarks fs-5"></i>
+        </div>
+        <span class="fw-semibold">Categorías</span>
+      </a>
+      
+      <a th:href="@{/empleados}" class="d-flex align-items-center text-white text-decoration-none mb-3 px-3 py-3 rounded sidebar-link">
+        <div class="icon-wrapper me-3">
+          <i class="bi bi-people-fill fs-5"></i>
+        </div>
+        <span class="fw-semibold">Empleados</span>
+      </a>
+      
+      <a th:href="@{/proveedores}" class="d-flex align-items-center text-white text-decoration-none mb-3 px-3 py-3 rounded sidebar-link">
+        <div class="icon-wrapper me-3">
+          <i class="bi bi-truck fs-5"></i>
+        </div>
+        <span class="fw-semibold">Proveedores</span>
+      </a>
+     
+    </div>
+
+    
+    <div class="mt-auto pt-3 border-top border-white opacity-25">
+      <div class="d-flex align-items-center text-white text-decoration-none px-3 py-2 rounded sidebar-link">
+        <div class="icon-wrapper me-3">
+          <i class="bi bi-person-circle fs-5"></i>
+        </div>
+        <div class="d-flex flex-column">
+          <span class="fw-semibold">Admin User</span>
+          <small class="text-white-50">Administrador</small>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <style>
+    .sidebar {
+      background: linear-gradient(180deg, #6a11cb 0%, #2575fc 100%) !important;
+      transition: all 0.3s ease;
+    }
+
+    .logo-container {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar-link {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sidebar-link::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .sidebar-link:hover::before {
+      left: 100%;
+    }
+
+    .sidebar-link:hover, .sidebar-link.active {
+      background: rgba(255, 255, 255, 0.2) !important;
+      color: #fff !important;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      transform: translateX(8px);
+      text-decoration: none;
+    }
+
+    .sidebar-link.active {
+      background: rgba(255, 255, 255, 0.25) !important;
+      box-shadow: inset 4px 0 0 #00e0ff, 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .icon-wrapper {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-link:hover .icon-wrapper, 
+    .sidebar-link.active .icon-wrapper {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.1);
+    }
+
+    .sidebar-link i {
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-link:hover i, 
+    .sidebar-link.active i {
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    .badge-notif {
+      font-size: 0.6rem;
+      color: #00e0ff;
+      animation: pulse 2s infinite;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 0.25em 0.5em;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav.sidebar {
+        width: 70px !important;
+        padding: 0.8rem 0.5rem !important;
+      }
+      
+      nav.sidebar h4, 
+      nav.sidebar small,
+      nav.sidebar hr,
+      .sidebar-link span,
+      .badge,
+      .sidebar .mt-auto .d-flex flex-column {
+        display: none !important;
+      }
+      
+      .logo-container {
+        width: 45px;
+        height: 45px;
+        margin-bottom: 1rem;
+      }
+      
+      .logo-container i {
+        font-size: 1.5rem !important;
+      }
+      
+      .sidebar-link {
+        justify-content: center !important;
+        padding: 0.75rem !important;
+        margin-bottom: 0.5rem !important;
+      }
+      
+      .icon-wrapper {
+        margin-right: 0 !important;
+        width: 32px;
+        height: 32px;
+      }
+      
+      .sidebar-link:hover, 
+      .sidebar-link.active {
+        transform: translateY(-2px);
+      }
+    }
+  </style>
+</div>

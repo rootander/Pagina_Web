@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestión de Categorías</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #343a40;
+      padding-top: 20px;
+      position: fixed;
+      width: 220px;
+    }
+
+    .sidebar a {
+      color: #ffffff;
+      display: block;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #495057;
+      color: #ffffff;
+    }
+
+    .top-header {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 1030;
+      height: 60px;
+      background-color: #fff;
+      border-bottom: 1px solid #dee2e6;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .content {
+      margin-left: 220px;
+      padding: 20px 40px;
+      padding-top: 80px;
+    }
+
+    /* 🔹 Scroll vertical para la tabla */
+    .table-container {
+      max-height: 520px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: #fff;
+      border-radius: 8px;
+    }
+
+    /* 🔹 Fijar encabezado */
+    .table thead th {
+      position: sticky;
+      top: 0;
+      background-color: #212529;
+      color: white;
+      z-index: 2;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Sidebar -->
+  <div th:replace="fragments/sidebar :: sidebar"></div>
+
+  <!-- Header -->
+  <div th:replace="fragments/header :: header"></div>
+
+  <div class="content">
+    <h2 class="mb-4">Gestión de Categorías</h2>
+
+    <!-- 🔍 FILTROS -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div class="d-flex gap-2 flex-wrap">
+        <input type="text" id="filtroBusqueda" class="form-control" placeholder="Buscar nombre o descripción..." style="min-width: 250px;">
+        <select id="filtroOrden" class="form-select">
+          <option value="">Ordenar por...</option>
+          <option value="asc">Nombre A-Z</option>
+          <option value="desc">Nombre Z-A</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btnNuevaCategoria">
+        <i class="bi bi-plus-circle"></i> Nueva Categoría
+      </button>
+    </div>
+
+    <!-- 🧾 TABLA -->
+    <div class="table-container shadow-sm">
+      <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="categoriasTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 🪟 MODAL -->
+  <div class="modal fade" id="categoriaModal" tabindex="-1" aria-labelledby="categoriaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="categoriaForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="categoriaModalLabel">Categoría</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="categoriaId" />
+          <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre</label>
+            <input type="text" id="nombre" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="descripcion" class="form-label">Descripción</label>
+            <textarea id="descripcion" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Guardar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const API_URL = "/api/categorias";
+    const tableBody = document.getElementById("categoriasTable");
+    const form = document.getElementById("categoriaForm");
+    const modalElement = document.getElementById("categoriaModal");
+    const modal = new bootstrap.Modal(modalElement);
+    const btnNueva = document.getElementById("btnNuevaCategoria");
+
+    const filtroBusqueda = document.getElementById("filtroBusqueda");
+    const filtroOrden = document.getElementById("filtroOrden");
+
+    let categorias = [];
+    let editId = null;
+
+    function renderCategoria(cat) {
+      return `
+        <tr data-id="${cat.id}">
+          <td>${cat.id}</td>
+          <td>${cat.nombre}</td>
+          <td>${cat.descripcion || ""}</td>
+          <td>
+            <button class="btn btn-sm btn-warning" onclick="editarCategoria(${cat.id})">Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="eliminarCategoria(${cat.id})">Eliminar</button>
+          </td>
+        </tr>`;
+    }
+
+    // 🔍 Filtrado y orden
+    function aplicarFiltros() {
+      let filtradas = [...categorias];
+      const texto = filtroBusqueda.value.toLowerCase();
+      const orden = filtroOrden.value;
+
+      if (texto) {
+        filtradas = filtradas.filter(c =>
+          c.nombre.toLowerCase().includes(texto) ||
+          (c.descripcion || "").toLowerCase().includes(texto)
+        );
+      }
+
+      if (orden === "asc") {
+        filtradas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      } else if (orden === "desc") {
+        filtradas.sort((a, b) => b.nombre.localeCompare(a.nombre));
+      }
+
+      tableBody.innerHTML = filtradas.map(renderCategoria).join("");
+    }
+
+    function cargarCategorias() {
+      fetch(API_URL)
+        .then(res => {
+          if (!res.ok) throw new Error("Error al cargar categorías");
+          return res.json();
+        })
+        .then(data => {
+          categorias = data;
+          aplicarFiltros();
+        })
+        .catch(err => alert(err.message));
+    }
+
+    // 🔄 Eventos de filtros
+    filtroBusqueda.addEventListener("input", aplicarFiltros);
+    filtroOrden.addEventListener("change", aplicarFiltros);
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const categoria = {
+        nombre: document.getElementById("nombre").value.trim(),
+        descripcion: document.getElementById("descripcion").value.trim()
+      };
+
+      let url = API_URL;
+      let method = "POST";
+
+      if (editId) {
+        url = `${API_URL}/${editId}`;
+        method = "PUT";
+      }
+
+      fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(categoria)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Error guardando categoría");
+        return res.json();
+      })
+      .then(() => {
+        modal.hide();
+        form.reset();
+        editId = null;
+        cargarCategorias();
+      })
+      .catch(err => alert(err.message));
+    });
+
+    btnNueva.addEventListener("click", () => {
+      form.reset();
+      editId = null;
+      modal.show();
+    });
+
+    window.editarCategoria = function (id) {
+      fetch(`${API_URL}/${id}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Categoría no encontrada");
+          return res.json();
+        })
+        .then(cat => {
+          editId = cat.id;
+          document.getElementById("nombre").value = cat.nombre;
+          document.getElementById("descripcion").value = cat.descripcion || "";
+          modal.show();
+        })
+        .catch(err => alert(err.message));
+    };
+
+    window.eliminarCategoria = function (id) {
+      if (confirm("¿Seguro que deseas eliminar esta categoría?")) {
+        fetch(`${API_URL}/${id}`, { method: "DELETE" })
+          .then(res => {
+            if (res.status === 204) {
+              categorias = categorias.filter(c => c.id !== id);
+              aplicarFiltros();
+            } else {
+              throw new Error("No se pudo eliminar la categoría");
+            }
+          })
+          .catch(err => alert(err.message));
+      }
+    };
+
+    cargarCategorias();
+  });
+  </script>
+</body>
+</html>

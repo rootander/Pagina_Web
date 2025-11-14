@@ -1,0 +1,333 @@
+<div th:fragment="header">
+  <header class="top-header d-flex justify-content-between align-items-center px-4 bg-white border-bottom" style="height: 70px; margin-left: 220px; transition: margin-left 0.3s; box-shadow: 0 2px 15px rgba(106, 17, 203, 0.1); z-index: 1020;">
+    
+    
+    <div class="d-flex align-items-center">
+      <div class="header-title me-4">
+        <h5 class="mb-0 fw-bold text-dark" style="font-family: 'Segoe UI', sans-serif;">Panel de Control</h5>
+        <small class="text-muted" id="pageSubtitle">Sistema de Gestión de Inventario</small>
+      </div>
+      
+      <nav aria-label="breadcrumb" class="d-none d-md-block">
+        <ol class="breadcrumb mb-0" style="font-size: 0.9rem;">
+          <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-primary">Inicio</a></li>
+          <li class="breadcrumb-item active text-dark" aria-current="page" id="currentPage">Dashboard</li>
+        </ol>
+      </nav>
+    </div>
+
+    
+    <div class="d-flex align-items-center gap-3">
+      
+      
+      <div class="dropdown">
+        <button class="btn btn-light rounded-circle position-relative p-2" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px;">
+          <i class="bi bi-bell-fill text-primary"></i>
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+            3
+          </span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow rounded-3" aria-labelledby="notifDropdown" style="min-width: 280px; z-index: 1060;">
+          <li><h6 class="dropdown-header text-dark fw-bold py-2" style="font-size: 0.85rem;">Notificaciones</h6></li>
+          <li><a class="dropdown-item d-flex align-items-start gap-2 py-2" href="#" style="font-size: 0.85rem;">
+            <div class="flex-shrink-0">
+              <i class="bi bi-cart-check-fill text-success fs-6"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">Nuevo pedido recibido</div>
+              <small class="text-muted">Hace 5 minutos</small>
+            </div>
+          </a></li>
+          <li><a class="dropdown-item d-flex align-items-start gap-2 py-2" href="#" style="font-size: 0.85rem;">
+            <div class="flex-shrink-0">
+              <i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">Stock bajo en productos</div>
+              <small class="text-muted">Hace 1 hora</small>
+            </div>
+          </a></li>
+          <li><a class="dropdown-item d-flex align-items-start gap-2 py-2" href="#" style="font-size: 0.85rem;">
+            <div class="flex-shrink-0">
+              <i class="bi bi-info-circle-fill text-info fs-6"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">Sistema actualizado</div>
+              <small class="text-muted">Ayer</small>
+            </div>
+          </a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item text-center text-primary fw-semibold py-2" href="#" style="font-size: 0.85rem;">Ver todas</a></li>
+        </ul>
+      </div>
+
+      
+      <div class="vr d-none d-md-block" style="height: 30px;"></div>
+
+      
+      <div class="dropdown">
+        <button class="btn btn-light rounded-pill d-flex align-items-center gap-3 py-2 px-3 user-dropdown-btn" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid rgba(106, 17, 203, 0.1); transition: all 0.3s ease;">
+          
+          <div class="user-avatar position-relative">
+            <div class="avatar-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width: 38px; height: 38px; border-radius: 50%; font-size: 0.9rem;">
+              <span id="userInitials">US</span>
+            </div>
+            <div class="position-absolute bottom-0 end-0 bg-success rounded-circle" style="width: 10px; height: 10px; border: 2px solid white;"></div>
+          </div>
+          
+          
+          <div class="d-flex flex-column text-start d-none d-md-flex">
+            <strong id="nombreUsuarioHeader" class="fs-6 mb-0 text-dark fw-semibold">Cargando...</strong>
+            <small id="rolUsuarioHeader" class="text-muted small" style="font-size: 0.75rem;">...</small>
+          </div>
+          
+          <i class="bi bi-caret-down-fill text-muted fs-6"></i>
+        </button>
+
+        <ul class="dropdown-menu dropdown-menu-end shadow rounded-3 border-0" aria-labelledby="userDropdown" style="min-width: 200px; z-index: 1060;">
+          <li class="px-3 py-2 border-bottom">
+            <div class="d-flex align-items-center">
+              <div class="avatar-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold me-2" style="width: 40px; height: 40px; border-radius: 50%; font-size: 0.9rem;">
+                <span id="dropdownUserInitials">US</span>
+              </div>
+              <div style="line-height: 1.2;">
+                <div id="dropdownUserName" class="fw-bold text-dark" style="font-size: 0.9rem;">Usuario</div>
+                <small id="dropdownUserRole" class="text-muted" style="font-size: 0.75rem;">Rol</small>
+              </div>
+            </div>
+          </li>
+          
+          <li><h6 class="dropdown-header text-secondary fw-bold mt-2 py-1" style="font-size: 0.8rem;">Cuenta</h6></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#" id="profileLink" style="font-size: 0.85rem;">
+            <i class="bi bi-person-fill text-primary fs-6"></i>
+            <span>Mi Perfil</span>
+          </a></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#" id="settingsLink" style="font-size: 0.85rem;">
+            <i class="bi bi-gear-fill text-warning fs-6"></i>
+            <span>Configuración</span>
+          </a></li>
+          
+          <li><h6 class="dropdown-header text-secondary fw-bold mt-2 py-1" style="font-size: 0.8rem;">Sistema</h6></li>
+          <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#" style="font-size: 0.85rem;">
+            <i class="bi bi-question-circle-fill text-info fs-6"></i>
+            <span>Ayuda & Soporte</span>
+          </a></li>
+          
+          <li><hr class="dropdown-divider my-1"></li>
+       <li>
+  <form th:action="@{/logout}" method="post">
+    <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold" style="font-size: 0.85rem;">
+      <i class="bi bi-box-arrow-right fs-6"></i>
+      <span>Cerrar sesión</span>
+    </button>
+  </form>
+</li>
+
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <style>
+    .top-header {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%) !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1020;
+    }
+
+    .user-dropdown-btn:hover {
+      background: linear-gradient(135deg, #f8f9ff 0%, #eef2ff 100%) !important;
+      border-color: rgba(106, 17, 203, 0.3) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(106, 17, 203, 0.15);
+    }
+
+    .avatar-circle {
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%) !important;
+      box-shadow: 0 2px 8px rgba(106, 17, 203, 0.3);
+    }
+
+    .dropdown-menu {
+      border: 1px solid rgba(106, 17, 203, 0.1) !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      
+      z-index: 1060 !important;
+    }
+
+    
+    .dropdown {
+      z-index: 1060;
+    }
+
+    .dropdown-item {
+      border-radius: 6px;
+      margin: 1px 4px;
+      transition: all 0.2s ease;
+      font-size: 0.85rem;
+    }
+
+    .dropdown-item:hover {
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%) !important;
+      color: white !important;
+      transform: translateX(2px);
+    }
+
+    .dropdown-item:hover i {
+      color: white !important;
+    }
+
+    .breadcrumb-item a:hover {
+      color: #6a11cb !important;
+    }
+
+    .badge {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    
+    .content {
+      z-index: 1;
+      position: relative;
+    }
+
+    
+    @media (max-width: 768px) {
+      .top-header {
+        margin-left: 70px !important;
+        padding: 0 1rem !important;
+        z-index: 1020;
+      }
+      
+      .header-title h5 {
+        font-size: 1rem !important;
+      }
+      
+      .header-title small,
+      nav.breadcrumb {
+        display: none !important;
+      }
+      
+      .user-dropdown-btn .d-none.d-md-flex {
+        display: none !important;
+      }
+
+      
+      .dropdown-menu {
+        min-width: 250px !important;
+        transform: translateX(-20px) !important;
+      }
+
+      #userDropdown ~ .dropdown-menu {
+        min-width: 180px !important;
+      }
+    }
+
+    
+    @media (max-width: 992px) {
+      .dropdown-menu {
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      function parseJwt(token) {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+          return JSON.parse(jsonPayload);
+        } catch (e) {
+          console.warn("❌ Error al decodificar el token:", e);
+          return null;
+        }
+      }
+
+      const decoded = parseJwt(token);
+      if (decoded) {
+        const username = decoded.sub || decoded.username || "Desconocido";
+        const rol = decoded.rol || decoded.role || "Sin rol";
+        
+        
+        document.getElementById("nombreUsuarioHeader").textContent = username;
+        document.getElementById("rolUsuarioHeader").textContent = rol.charAt(0).toUpperCase() + rol.slice(1).toLowerCase();
+        
+        
+        document.getElementById("dropdownUserName").textContent = username;
+        document.getElementById("dropdownUserRole").textContent = rol.charAt(0).toUpperCase() + rol.slice(1).toLowerCase();
+        
+        
+        const initials = username.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        document.getElementById("userInitials").textContent = initials;
+        document.getElementById("dropdownUserInitials").textContent = initials;
+      }
+
+      
+      const currentPath = window.location.pathname;
+      const pageTitles = {
+        '/dashboard': 'Dashboard',
+        '/inventario': 'Inventario',
+        '/productos': 'Productos',
+        '/movimientos': 'Movimientos',
+        '/categorias': 'Categorías',
+        '/empleados': 'Empleados',
+        '/proveedores': 'Proveedores'
+      };
+      
+      if (pageTitles[currentPath]) {
+        document.getElementById('currentPage').textContent = pageTitles[currentPath];
+      }
+
+      
+      document.getElementById("logoutBtn").addEventListener("click", e => {
+        e.preventDefault();
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      });
+
+      document.getElementById("profileLink").addEventListener("click", e => {
+        e.preventDefault();
+        
+        console.log("Abrir perfil del usuario");
+      });
+      
+      document.getElementById("settingsLink").addEventListener("click", e => {
+        e.preventDefault();
+        
+        console.log("Abrir configuración");
+      });
+
+      
+      document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateX(3px)';
+        });
+        item.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateX(0)';
+        });
+      });
+
+      
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.dropdown')) {
+          document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.remove('show');
+          });
+        }
+      });
+    });
+  </script>
+</div>
