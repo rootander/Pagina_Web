@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reportes de Inventario</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Estilos personalizados -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        th {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            text-align: center;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tbody tr:hover {
+            background-color: #dfe6e9;
+        }
+        td, th {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="fragments/sidebar :: sidebar"></div>
+    <div th:replace="fragments/header :: header"></div>
+
+    <div class="container py-4">
+        <h2 class="mb-4 text-center">📊 Reportes de Inventario</h2>
+
+        <!-- Filtros -->
+        <div class="card p-3 mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Fecha desde</label>
+                    <input type="date" id="fechaDesde" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fecha hasta</label>
+                    <input type="date" id="fechaHasta" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tipo de movimiento</label>
+                    <select id="tipoMovimiento" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="entrada">Entradas</option>
+                        <option value="salida">Salidas</option>
+                        <option value="ajuste">Ajustes</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button id="btnGenerar" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-search"></i> Generar Reporte
+                    </button>
+                    <button id="btnExcel" class="btn btn-success w-100 mb-2">
+                        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+                    </button>
+                    <button id="btnPDF" class="btn btn-danger w-100">
+                        <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de resultados -->
+        <div class="card p-3">
+            <div class="table-container">
+                <table class="table table-hover" id="tablaReportes">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Producto</th>
+                            <th>Talla</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No hay datos</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librerías externas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script personalizado -->
+    <script>
+        let movimientosFiltrados = [];
+
+        document.getElementById("btnGenerar").addEventListener("click", () => {
+            const desde = document.getElementById("fechaDesde").value;
+            const hasta = document.getElementById("fechaHasta").value;
+            const tipo = document.getElementById("tipoMovimiento").value;
+            const tbody = document.querySelector("#tablaReportes tbody");
+
+            fetch("/api/movimientos/reporte")
+                .then(r => r.ok ? r.json() : Promise.reject("Error al obtener datos"))
+                .then(data => {
+                    tbody.innerHTML = "";
+
+                    movimientosFiltrados = data
+                        .map(m => ({
+                            id: m.id,
+                            producto: m.producto || "Sin nombre",
+                            talla: m.talla || "-",
+                            tipoMovimiento: m.tipoMovimiento || "N/A",
+                            cantidad: m.cantidad || 0,
+                            fecha: m.fecha || new Date().toISOString()
+                        }))
+                        .filter(m => {
+                            const fecha = m.fecha.split("T")[0];
+                            return (!desde || fecha >= desde) &&
+                                   (!hasta || fecha <= hasta) &&
+                                   (!tipo || m.tipoMovimiento.toLowerCase() === tipo.toLowerCase());
+                        });
+
+                    if (movimientosFiltrados.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Sin resultados</td></tr>`;
+                        return;
+                    }
+
+                    movimientosFiltrados.forEach(m => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${m.id}</td>
+                                <td>${m.producto}</td>
+                                <td>${m.talla}</td>
+                                <td>${m.tipoMovimiento}</td>
+                                <td>${m.cantidad}</td>
+                                <td>${new Date(m.fecha).toLocaleDateString()}</td>
+                            </tr>`;
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error al cargar los datos</td></tr>`;
+                });
+        });
+
+        // Exportar a Excel
+        document.getElementById("btnExcel").addEventListener("click", () => {
+            if (movimientosFiltrados.length === 0) {
+                alert("Primero genera un reporte.");
+                return;
+            }
+
+            const wsData = movimientosFiltrados.map(m => ({
+                ID: m.id,
+                Producto: m.producto,
+                Talla: m.talla,
+                Tipo: m.tipoMovimiento,
+                Cantidad: m.cantidad,
+                Fecha: new Date(m.fecha).toLocaleDateString()
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(wsData, {header: ["ID","Producto","Talla","Tipo","Cantidad","Fecha"]});
+
+            // Estilo simple para encabezado
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cell_address = {c:C, r:0};
+                const cell_ref = XLSX.utils.encode_cell(cell_address);
+                if(!ws[cell_ref]) continue;
+                ws[cell_ref].s = {
+                    font: {bold: true, color: {rgb:"FFFFFFFF"}},
+                    fill: {fgColor:{rgb:"FF2C3E50"}},
+                    alignment: {horizontal:"center"}
+                };
+            }
+
+            XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+            XLSX.writeFile(wb, "Reporte_Inventario.xlsx");
+        });
+
+        // Exportar a PDF
+        document.getElementById("btnPDF").addEventListener("click", () => {
+            if (movimientosFiltrados.length === 0) {
+                alert("Primero genera un reporte.");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.setTextColor(44,62,80);
+            doc.text("Reporte de Inventario", 105, 15, { align: "center" });
+            doc.setFontSize(10);
+            doc.setTextColor(0,0,0);
+            doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 22);
+
+            const columnas = ["ID", "Producto", "Talla", "Tipo", "Cantidad", "Fecha"];
+            const filas = movimientosFiltrados.map(m => [
+                m.id, m.producto, m.talla, m.tipoMovimiento, m.cantidad,
+                new Date(m.fecha).toLocaleDateString()
+            ]);
+
+            doc.autoTable({
+                startY: 30,
+                head: [columnas],
+                body: filas,
+                theme: "grid",
+                headStyles: { fillColor: [44,62,80], textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [240,240,240] },
+                styles: { cellPadding: 3, fontSize: 10 }
+            });
+
+            // Pie de página
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.text(`Página ${i} de ${pageCount}`, 105, 290, { align: "center" });
+            }
+
+            doc.save("Reporte_Inventario.pdf");
+        });
+    </script>
+</body>
+</html>

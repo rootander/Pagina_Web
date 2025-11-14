@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestión de Productos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"/>
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #343a40;
+      padding-top: 20px;
+      position: fixed;
+      width: 220px;
+    }
+
+    .sidebar a {
+      color: #ffffff;
+      display: block;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #495057;
+      color: #ffffff;
+    }
+
+    .content {
+      margin-left: 220px;
+      padding: 20px 40px; 
+      padding-top: 40px;  
+    }
+
+    .table-container {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    th.sortable:hover {
+      cursor: pointer;
+      color: #0d6efd;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div th:replace="fragments/sidebar :: sidebar"></div>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="content">
+  <div class="container mt-4">
+    <h2>Gestión de Productos</h2>
+
+    <!-- 🔍 FILTROS -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div class="d-flex gap-2 flex-wrap">
+        <input type="text" id="filtroBusqueda" class="form-control" placeholder="Buscar por nombre o SKU..." style="min-width: 250px;">
+        <select id="filtroCategoria" class="form-select">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select id="filtroOrden" class="form-select">
+          <option value="">Ordenar por...</option>
+          <option value="asc">Precio ↑ (menor a mayor)</option>
+          <option value="desc">Precio ↓ (mayor a menor)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btnNuevoProducto">
+        <i class="bi bi-plus-circle"></i> Nuevo Producto
+      </button>
+    </div>
+
+    <!-- 🧾 TABLA -->
+    <div class="table-container shadow-sm rounded">
+      <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Proveedor</th>
+            <th class="sortable">Precio Venta <i class="bi bi-arrow-down-up"></i></th>
+            <th>SKU</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="productosTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRODUCTO -->
+<div class="modal fade" id="productoModal" tabindex="-1" aria-labelledby="productoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="productoForm">
+      <div class="modal-header">
+        <h5 class="modal-title" id="productoModalLabel">Producto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="productoId" />
+        <div class="mb-3">
+          <label for="nombre" class="form-label">Nombre</label>
+          <input type="text" id="nombre" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label for="descripcion" class="form-label">Descripción</label>
+          <textarea id="descripcion" class="form-control" rows="2"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="categoria" class="form-label">Categoría</label>
+          <select id="categoria" class="form-select" required>
+            <option value="">-- Seleccione Categoría --</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="proveedor" class="form-label">Proveedor</label>
+          <select id="proveedor" class="form-select" required>
+            <option value="">-- Seleccione Proveedor --</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="precioCompra" class="form-label">Precio Compra</label>
+          <input type="number" id="precioCompra" class="form-control" step="0.01" min="0" required />
+        </div>
+        <div class="mb-3">
+          <label for="precioVenta" class="form-label">Precio Venta</label>
+          <input type="number" id="precioVenta" class="form-control" step="0.01" min="0" required />
+        </div>
+        <div class="mb-3">
+          <label for="sku" class="form-label">SKU</label>
+          <input type="text" id="sku" class="form-control" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const tableBody = document.getElementById("productosTable");
+  const form = document.getElementById("productoForm");
+  const modalElement = document.getElementById("productoModal");
+  const modal = new bootstrap.Modal(modalElement);
+  const btnNuevo = document.getElementById("btnNuevoProducto");
+  const filtroBusqueda = document.getElementById("filtroBusqueda");
+  const filtroCategoria = document.getElementById("filtroCategoria");
+  const filtroOrden = document.getElementById("filtroOrden");
+
+  let productosData = [];
+  let categoriasData = [];
+  let editId = null;
+
+  function renderProducto(p) {
+    const nombreCategoria = p.categoria?.nombre || "";
+    const nombreProveedor = p.proveedor?.nombre || "";
+    return `
+      <tr data-id="${p.id}" data-precio="${p.precioVenta}">
+        <td>${p.id}</td>
+        <td>${p.nombre}</td>
+        <td>${nombreCategoria}</td>
+        <td>${nombreProveedor}</td>
+        <td>${p.precioVenta.toFixed(2)}</td>
+        <td>${p.sku || ""}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="editarProducto(${p.id})">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarProducto(${p.id})">Eliminar</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  function cargarCategorias() {
+    return fetch("/api/categorias")
+      .then(res => res.json())
+      .then(data => {
+        categoriasData = data;
+        filtroCategoria.innerHTML = '<option value="">Todas las categorías</option>';
+        document.getElementById("categoria").innerHTML = '<option value="">-- Seleccione Categoría --</option>';
+        data.forEach(cat => {
+          filtroCategoria.innerHTML += `<option value="${cat.id}">${cat.nombre}</option>`;
+          document.getElementById("categoria").innerHTML += `<option value="${cat.id}">${cat.nombre}</option>`;
+        });
+      });
+  }
+
+  function cargarProductos() {
+    fetch("/api/productos")
+      .then(res => res.json())
+      .then(data => {
+        productosData = data;
+        actualizarTabla();
+      });
+  }
+
+  function actualizarTabla() {
+    tableBody.innerHTML = productosData.map(renderProducto).join("");
+    aplicarFiltros();
+  }
+
+  function aplicarFiltros() {
+    const texto = filtroBusqueda.value.toLowerCase();
+    const categoria = filtroCategoria.value;
+    const orden = filtroOrden.value;
+
+    const filas = Array.from(tableBody.querySelectorAll("tr"));
+
+    filas.forEach(fila => {
+      const nombre = fila.children[1]?.textContent.toLowerCase() || "";
+      const sku = fila.children[5]?.textContent.toLowerCase() || "";
+      const idCat = productosData.find(p => p.id == fila.dataset.id)?.categoria?.id?.toString() || "";
+
+      const coincideTexto = nombre.includes(texto) || sku.includes(texto);
+      const coincideCat = categoria === "" || idCat === categoria;
+
+      fila.style.display = coincideTexto && coincideCat ? "" : "none";
+    });
+
+    if (orden) {
+      const visibles = filas.filter(f => f.style.display !== "none");
+      visibles.sort((a, b) => {
+        const precioA = parseFloat(a.dataset.precio);
+        const precioB = parseFloat(b.dataset.precio);
+        return orden === "asc" ? precioA - precioB : precioB - precioA;
+      });
+      visibles.forEach(f => tableBody.appendChild(f));
+    }
+  }
+
+  filtroBusqueda.addEventListener("input", aplicarFiltros);
+  filtroCategoria.addEventListener("change", aplicarFiltros);
+  filtroOrden.addEventListener("change", aplicarFiltros);
+
+  btnNuevo.addEventListener("click", async () => {
+    form.reset();
+    editId = null;
+    await cargarCategorias();
+    modal.show();
+  });
+
+  cargarCategorias();
+  cargarProductos();
+});
+</script>
+</body>
+</html>
