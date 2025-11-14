@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestión de Proveedores</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #343a40;
+      padding-top: 20px;
+      position: fixed;
+      width: 220px;
+    }
+
+    .sidebar a {
+      color: #ffffff;
+      display: block;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #495057;
+      color: #ffffff;
+    }
+
+    .top-header {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 1030;
+      height: 60px;
+      background-color: #fff;
+      border-bottom: 1px solid #dee2e6;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .content {
+      margin-left: 220px;
+      padding: 20px 40px;
+      padding-top: 40px;
+    }
+
+    /* Scroll en tabla */
+    .table-responsive {
+      max-height: 500px;
+      overflow-y: auto;
+      overflow-x: auto;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div th:replace="fragments/sidebar :: sidebar"></div>
+<div th:replace="fragments/header :: header"></div>
+
+<div class="content">
+  <div class="container mt-4">
+    <h2>Gestión de Proveedores</h2>
+
+    <!-- 🔍 Barra de filtros -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div class="d-flex gap-2 flex-wrap">
+        <input type="text" id="filtroBusqueda" class="form-control" placeholder="Buscar proveedor o contacto..." style="min-width: 250px;">
+        <select id="filtroOrden" class="form-select">
+          <option value="">Ordenar por...</option>
+          <option value="az">Nombre A–Z</option>
+          <option value="za">Nombre Z–A</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btnNuevoProveedor">
+        <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+      </button>
+    </div>
+
+    <div class="table-responsive shadow-sm">
+      <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Contacto</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th>Dirección</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="proveedoresTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 🧾 Modal -->
+<div class="modal fade" id="proveedorModal" tabindex="-1" aria-labelledby="proveedorModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="proveedorForm">
+      <div class="modal-header">
+        <h5 class="modal-title" id="proveedorModalLabel">Proveedor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="proveedorId" />
+        <div class="mb-3">
+          <label for="nombre" class="form-label">Nombre</label>
+          <input type="text" id="nombre" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label for="contacto" class="form-label">Contacto</label>
+          <input type="text" id="contacto" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label for="telefono" class="form-label">Teléfono</label>
+          <input type="text" id="telefono" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" id="email" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label for="direccion" class="form-label">Dirección</label>
+          <textarea id="direccion" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const API_URL = "/api/proveedores";
+  const tableBody = document.getElementById("proveedoresTable");
+  const form = document.getElementById("proveedorForm");
+  const modalElement = document.getElementById("proveedorModal");
+  const modal = new bootstrap.Modal(modalElement);
+  const btnNuevo = document.getElementById("btnNuevoProveedor");
+  const filtroBusqueda = document.getElementById("filtroBusqueda");
+  const filtroOrden = document.getElementById("filtroOrden");
+
+  let editId = null;
+  let proveedores = [];
+
+  function renderProveedor(p) {
+    return `
+      <tr data-id="${p.id}">
+        <td>${p.id}</td>
+        <td>${p.nombre}</td>
+        <td>${p.contacto || ""}</td>
+        <td>${p.telefono || ""}</td>
+        <td>${p.email || ""}</td>
+        <td>${p.direccion || ""}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="editarProveedor(${p.id})">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarProveedor(${p.id})">Eliminar</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  function aplicarFiltros() {
+    let filtrados = [...proveedores];
+    const texto = filtroBusqueda.value.toLowerCase();
+    const orden = filtroOrden.value;
+
+    if (texto) {
+      filtrados = filtrados.filter(p =>
+        p.nombre.toLowerCase().includes(texto) ||
+        (p.contacto && p.contacto.toLowerCase().includes(texto))
+      );
+    }
+
+    if (orden === "az") filtrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    else if (orden === "za") filtrados.sort((a, b) => b.nombre.localeCompare(a.nombre));
+
+    tableBody.innerHTML = filtrados.length
+      ? filtrados.map(renderProveedor).join("")
+      : `<tr><td colspan="7" class="text-center text-muted">No se encontraron proveedores</td></tr>`;
+  }
+
+  function cargarProveedores() {
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => {
+        proveedores = data;
+        aplicarFiltros();
+      })
+      .catch(err => alert("Error cargando proveedores"));
+  }
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+
+    const proveedor = {
+      nombre: document.getElementById("nombre").value.trim(),
+      contacto: document.getElementById("contacto").value.trim(),
+      telefono: document.getElementById("telefono").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      direccion: document.getElementById("direccion").value.trim()
+    };
+
+    let url = API_URL;
+    let method = "POST";
+
+    if (editId) {
+      url = `${API_URL}/${editId}`;
+      method = "PUT";
+    }
+
+    fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(proveedor)
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Error al guardar");
+        return res.json();
+      })
+      .then(() => {
+        modal.hide();
+        form.reset();
+        editId = null;
+        cargarProveedores();
+      })
+      .catch(err => alert(err.message));
+  });
+
+  btnNuevo.addEventListener("click", () => {
+    form.reset();
+    editId = null;
+    modal.show();
+  });
+
+  window.editarProveedor = function (id) {
+    fetch(`${API_URL}/${id}`)
+      .then(res => res.json())
+      .then(p => {
+        editId = p.id;
+        document.getElementById("nombre").value = p.nombre;
+        document.getElementById("contacto").value = p.contacto || "";
+        document.getElementById("telefono").value = p.telefono || "";
+        document.getElementById("email").value = p.email || "";
+        document.getElementById("direccion").value = p.direccion || "";
+        modal.show();
+      })
+      .catch(err => alert("No se pudo cargar el proveedor"));
+  };
+
+  window.eliminarProveedor = function (id) {
+    if (confirm("¿Seguro que deseas eliminar este proveedor?")) {
+      fetch(`${API_URL}/${id}`, { method: "DELETE" })
+        .then(res => {
+          if (res.status === 204) {
+            proveedores = proveedores.filter(p => p.id !== id);
+            aplicarFiltros();
+          } else throw new Error("Error al eliminar proveedor");
+        })
+        .catch(err => alert(err.message));
+    }
+  };
+
+  filtroBusqueda.addEventListener("input", aplicarFiltros);
+  filtroOrden.addEventListener("change", aplicarFiltros);
+
+  cargarProveedores();
+});
+</script>
+
+</body>
+</html>
